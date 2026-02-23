@@ -1,132 +1,55 @@
+
 import logging
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ==============================
-# НАСТРОЙКИ — ИЗМЕНИ ЭТО
-# ==============================
+# ====== НАСТРОЙКИ ======
 BOT_TOKEN = "8218142823:AAFlWcFYx8RQ_k7BDy90VcVzTyhRXh36als"
-ADMIN_USERNAME = "@charmparadox"  # или номер телефона
-ADMIN_CHAT_ID = 8486986323  # необязательно, но можно указать chat_id администратора
-
-# Прайс-лист (измени под себя)
-PRICE_TEXT = """
-💰 *Прайс-лист*
-
-▪️ Услуга 1 — 50 ₽
-▪️ Услуга 2 — 100 ₽
-▪️ Услуга 3 — 200 ₽
-▪️ Услуга 4 — 300 ₽
-
-_Цены могут меняться. Уточняйте у администратора._
-"""
-# ==============================
+ADMIN_USERNAME = "@charmparadox"  # Username администратора
+# =======================
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
 
-# Главное меню — кнопки внизу
-MAIN_MENU = ReplyKeyboardMarkup(
-    [
-        [KeyboardButton("💰 Прайс"), KeyboardButton("📅 Запись"), KeyboardButton("👤 Администратор")],
-    ],
-    resize_keyboard=True,
+# Текст прайса
+PRICE_TEXT = (
+    "💰 <b>Прайс-лист:</b>\n\n"
+    "1) Обработка\n"
+    "   — 10 рублей\n\n"
+    "2) Пикча\n"
+    "   — 10 рублей — один персонаж\n"
+    "   — 15 рублей — два персонажа\n"
+    "   — 20 рублей — три и более персонажей\n\n"
+    "3) Видео\n"
+    "   — 20 рублей"
 )
+
+# Главная клавиатура
+def get_keyboard():
+    keyboard = [
+        [KeyboardButton("💰 Прайс"), KeyboardButton("👤 Администратор")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Команда /start"""
     await update.message.reply_text(
-        "👋 Привет! Я ваш помощник.\n\n"
-        "Выберите нужный раздел в меню ниже 👇",
-        reply_markup=MAIN_MENU,
+        "Привет! Выбери нужный раздел 👇",
+        reply_markup=get_keyboard()
     )
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка нажатий кнопок меню и текстовых сообщений"""
     text = update.message.text
 
     if text == "💰 Прайс":
-        await update.message.reply_text(PRICE_TEXT, parse_mode="Markdown")
-
-    elif text == "📅 Запись":
-        # Сохраняем состояние — ждём имя
-        context.user_data["awaiting_booking"] = True
-        await update.message.reply_text(
-            "📅 *Запись*\n\n"
-            "Напишите ваше имя и удобное время для записи.\n"
-            "Например: _Анна, вторник 14:00_",
-            parse_mode="Markdown",
-        )
+        await update.message.reply_html(PRICE_TEXT)
 
     elif text == "👤 Администратор":
         await update.message.reply_text(
-            f"👤 *Администратор*\n\n"
-            f"Вы можете связаться с нами напрямую:\n"
-            f"Telegram: {ADMIN_USERNAME}\n\n"
-            f"Или напишите ваш вопрос прямо здесь, и мы передадим его администратору.",
-            parse_mode="Markdown",
-        )
-        context.user_data["awaiting_question"] = True
-
-    elif context.user_data.get("awaiting_booking"):
-        # Принимаем заявку на запись
-        context.user_data["awaiting_booking"] = False
-        user = update.effective_user
-        logger.info(f"Новая запись от {user.full_name} (@{user.username}): {text}")
-
-        await update.message.reply_text(
-            "✅ Ваша заявка принята!\n\n"
-            f"Данные: _{text}_\n\n"
-            "Мы свяжемся с вами для подтверждения.",
-            parse_mode="Markdown",
-            reply_markup=MAIN_MENU,
-        )
-
-        # Уведомление администратору (если указан ADMIN_CHAT_ID)
-        if ADMIN_CHAT_ID:
-            await context.bot.send_message(
-                chat_id=ADMIN_CHAT_ID,
-                text=f"📅 Новая запись!\n"
-                     f"От: {user.full_name} (@{user.username})\n"
-                     f"Данные: {text}",
-            )
-
-    elif context.user_data.get("awaiting_question"):
-        # Принимаем вопрос для администратора
-        context.user_data["awaiting_question"] = False
-        user = update.effective_user
-        logger.info(f"Вопрос от {user.full_name} (@{user.username}): {text}")
-
-        await update.message.reply_text(
-            "✅ Ваш вопрос отправлен администратору!\n"
-            "Мы ответим вам в ближайшее время.",
-            reply_markup=MAIN_MENU,
-        )
-
-        if ADMIN_CHAT_ID:
-            await context.bot.send_message(
-                chat_id=ADMIN_CHAT_ID,
-                text=f"❓ Вопрос администратору!\n"
-                     f"От: {user.full_name} (@{user.username})\n"
-                     f"Вопрос: {text}",
-            )
-
-    else:
-        # Любое другое сообщение
-        await update.message.reply_text(
-            "Используйте кнопки меню ниже 👇",
-            reply_markup=MAIN_MENU,
+            f"Связаться с администратором: {ADMIN_USERNAME}"
         )
 
 
